@@ -1,0 +1,95 @@
+{
+  "name": "(NoteBookLM)Doc Analyser",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-lite-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-lite-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an expert educational content analyzer. Your task is to analyze the provided text and transform it into clear, memorable study notes for students.\n\nInstructions:\n\nIdentify Key Concepts: Extract the main ideas, theories, definitions, and important facts from the text.\n\nOrganize Information: Structure the content using these formats:\n\nMain headings for major topics\n\nBullet points for related concepts\n\nNumbered lists for sequential steps or processes\n\nBold text for crucial terms and definitions\n\nSimplify Language: Replace complex jargon with simpler alternatives while maintaining accuracy. Add brief explanations for technical terms that must be retained.\n\nCreate Memory Aids: Include:\n\nMnemonics for lists or sequences\n\nSimple analogies to explain difficult concepts\n\nShort summaries at the end of major sections\n\nVisual Structure: Use clear spacing and hierarchy to make scanning easy.\n\nOutput Format:\n\n[Topic Name]\nKey Definition: [Main concept in one sentence]\n\nMain Points:\n\nPoint 1 with brief explanation\n\nPoint 2 with brief explanation\n\nPoint 3 with brief explanation\n\nRemember: [Mnemonic or simple summary]\n\nExamples: [1-2 practical examples if applicable]\n\nInput Text:\n{{your_input_field}}"
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "866e3327-1fa0-4fc6-a792-848470b6127b",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LonvicK3RMdRqQ4a",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        560,
+        0
+      ],
+      "id": "a156a97e-ec42-451e-8b4a-eefa5b0854d1",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "00c88e5b-186c-4363-a2f6-3eb7c655af6c",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d0e375b2-03fa-4f9f-9291-b9f3924e35ce",
+      "name": "Webhook",
+      "webhookId": "00c88e5b-186c-4363-a2f6-3eb7c655af6c"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b27cb0bf-b47a-480b-be0e-4b3d645ed677",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "83136fb25943862c63133e19c91072ed726e037df3bf1f10e85998996024567d"
+  },
+  "id": "SmStDdQdgqxKUyM4UX-8d",
+  "tags": []
+}

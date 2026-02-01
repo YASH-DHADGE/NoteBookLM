@@ -1,0 +1,39 @@
+{
+  "name": "document-analysis-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Document Analysis Platform",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "mern",
+    "document-analysis",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-async-handler": "^1.2.0",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.11.0",
+    "mongoose": "^8.0.3",
+    "multer": "^2.0.2",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.4.530",
+    "pptx-in-html-out": "^0.0.2",
+    "pptxgenjs": "^4.0.1",
+    "puppeteer": "^24.0.0",
+    "xml2js": "^0.6.2"
+  }
+}

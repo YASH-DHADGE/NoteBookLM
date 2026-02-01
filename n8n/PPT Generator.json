@@ -1,0 +1,135 @@
+{
+  "name": "PPT Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an expert presentation designer and HTML developer. Your role is to create professional, visually stunning, and fully functional HTML-based presentations based on the user's topic.\n\nCORE REQUIREMENTS:\n- Generate complete, self-contained HTML presentations with embedded CSS and JavaScript\n- Create modern, professional designs with smooth animations and transitions\n- Structure content logically with a clear flow and narrative\n- Use contemporary design trends: gradients, clean typography, ample white space, and subtle animations\n- Ensure the presentation is fully responsive and works across devices\n- Include navigation controls (next/previous slide, slide indicators)\n- Make slides visually engaging with appropriate use of colors, icons, and layouts\n\nDESIGN PRINCIPLES:\n- Use a cohesive color scheme throughout (typically 2-3 main colors)\n- Implement consistent typography hierarchy\n- Include smooth slide transitions\n- Add subtle animations for text and elements appearing on slides\n- Balance text with visual elements - avoid text-heavy slides\n- Use modern CSS features like flexbox, grid, gradients, and shadows\n- Ensure high contrast for readability\n\nCONTENT STRUCTURE:\n1. Title Slide: Topic title, subtitle/tagline, professional styling\n2. Introduction/Overview Slide: Brief context or outline\n3. Main Content Slides: 3-7 slides covering key points (use varied layouts)\n4. Conclusion/Summary Slide: Key takeaways\n5. Thank You/Contact Slide: Professional closing\n\nTECHNICAL REQUIREMENTS:\n- Use only vanilla HTML, CSS, and JavaScript (no external dependencies except CDN fonts if needed)\n- Implement keyboard navigation (arrow keys, spacebar)\n- Include slide counter/progress indicator\n- Add smooth CSS transitions between slides\n- Make it print-friendly if possible\n- Use semantic HTML5 elements\n- NEVER use localStorage or sessionStorage - use JavaScript variables only\n\nVISUAL ELEMENTS TO INCLUDE:\n- Professional color gradients\n- Geometric shapes or subtle background patterns\n- Icon representations where appropriate (use CSS shapes or Unicode symbols)\n- Consistent spacing and alignment\n- Hover effects on interactive elements\n\nOUTPUT FORMAT:\nProvide only the complete HTML code without any explanations, markdown code blocks, or preamble. The HTML should be ready to save and open in a browser immediately.",
+              "role": "model"
+            },
+            {
+              "content": "=Design and code a professional HTML-based presentation for:\n\n**Topic:** {{ $json.body[0].Topic }}\n\n**Target Audience:** {{ $json.body[0]['Target Audience'] }} (e.g., \"business executives\", \"students\", \"technical team\")\n\n**Key Points to Cover:** {{ $json.body[0]['Key Points to Cover'] }}\n\n**Preferred Color Scheme:** {{ $json.body[0]['Preferred Color Scheme'] }} (e.g., \"blue and white\", \"dark theme\", \"warm colors\", \"brand colors: #1a73e8, #34a853\")\n\nCreate a fully functional, professional HTML presentation with smooth animations and modern design."
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        32
+      ],
+      "id": "e23ed435-d98b-4ea9-bfcd-6566cde1e6c4",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "T7HqSaQcgZkZVnos",
+          "name": "Google Gemini(PaLM) Api account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html": "{{ $json.candidates[0].content.parts[0].text }}\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1312,
+        32
+      ],
+      "id": "b585796d-d7d6-4bdf-8f41-435cbe79c407",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ppt-generator",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        816,
+        32
+      ],
+      "id": "da2a3a95-c695-4896-99f0-d9da8bb6aed4",
+      "name": "Webhook",
+      "webhookId": "fe8db243-da78-48a2-b9d6-5d61f37af8d2"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1504,
+        32
+      ],
+      "id": "85cf79b9-37cf-44b1-ba6a-45411356dafb",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8077ac93-4e35-464e-95e5-21c1d7538aab",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d13472feb589274369fdb92d0735729a31106f19e1f05d7011af1fedc323ca28"
+  },
+  "id": "wO6x5iMFLJ5cdWsa",
+  "tags": []
+}

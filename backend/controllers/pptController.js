@@ -1,0 +1,622 @@
+import asyncHandler from 'express-async-handler';
+import puppeteer from 'puppeteer';
+import PptxGenJS from 'pptxgenjs';
+import axios from 'axios';
+import path from 'path';
+import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+import multer from 'multer';
+
+// Import pptx-in-html-out for PPTX to HTML conversion
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pptxToHtml = require('pptx-in-html-out');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure multer for template uploads
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'templates');
+
+// Ensure upload directory exists
+(async () => {
+    try {
+        await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    } catch (err) {
+        // Directory might already exist
+    }
+})();
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, UPLOAD_DIR);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+});
+
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+        cb(null, true);
+    } else {
+        cb(new Error('Only .pptx files are allowed'), false);
+    }
+};
+
+export const upload = multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+});
+
+// N8N Webhook URL is read at runtime from process.env (dotenv loads after ES module imports)
+
+// Singleton browser instance for better performance
+let browserInstance = null;
+
+/**
+ * Get or create a browser instance
+ * Reuses the same browser across requests for better performance
+ */
+const getBrowser = async () => {
+    if (!browserInstance || !browserInstance.isConnected()) {
+        console.log('Launching new Puppeteer browser instance...');
+        browserInstance = await puppeteer.launch({
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--window-size=1920,1080'
+            ]
+        });
+    }
+    return browserInstance;
+};
+
+/**
+ * Gracefully close browser on process exit
+ */
+process.on('SIGINT', async () => {
+    if (browserInstance) {
+        await browserInstance.close();
+    }
+    process.exit();
+});
+
+process.on('SIGTERM', async () => {
+    if (browserInstance) {
+        await browserInstance.close();
+    }
+    process.exit();
+});
+
+/**
+ * Generates ISO 8601 timestamp with timezone offset
+ */
+const getISOWithTimezone = () => {
+    const now = new Date();
+    const offset = -now.getTimezoneOffset();
+    const sign = offset >= 0 ? '+' : '-';
+    const hours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+    const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+    const isoBase = now.toISOString().slice(0, -1);
+    return `${isoBase}${sign}${hours}:${minutes}`;
+};
+
+/**
+ * @desc    Generate PPTX from presentation data
+ * @route   POST /api/ppt/generate
+ * @access  Private
+ */
+export const generatePptx = asyncHandler(async (req, res) => {
+    const { topic, targetAudience, keyPoints, colorScheme, hasTemplate, templateHtml } = req.body;
+
+    // Validate required fields
+    if (!topic || !targetAudience || !keyPoints || !colorScheme) {
+        res.status(400);
+        throw new Error('All fields are required: topic, targetAudience, keyPoints, colorScheme');
+    }
+
+    console.log(`🚀 Generating PPTX for topic: "${topic}"${hasTemplate ? ' (with template)' : ''}`);
+
+    let page = null;
+    const tempFilePath = path.join(__dirname, '..', 'temp', `presentation_${Date.now()}.pptx`);
+
+    try {
+        // Step 1: Call n8n webhook to get HTML from Gemini
+        // Read URL at runtime (after dotenv has loaded)
+        const webhookUrl = process.env.N8N_PPT_WEBHOOK_URL;
+        console.log('🔗 Using webhook URL:', webhookUrl || '(undefined)');
+
+        if (!webhookUrl) {
+            throw new Error('N8N_PPT_WEBHOOK_URL environment variable is not set');
+        }
+
+        console.log('📡 Calling n8n webhook for HTML generation...');
+
+        // Build n8n payload - include templateHtml if provided
+        const n8nPayload = [{
+            "Topic": topic,
+            "Target Audience": targetAudience,
+            "Key Points to Cover": keyPoints,
+            "Preferred Color Scheme": colorScheme,
+            "hasTemplate": !!hasTemplate,
+            "templateHtml": hasTemplate && templateHtml ? templateHtml : null,
+            "submittedAt": getISOWithTimezone(),
+            "formMode": "production"
+        }];
+
+        if (hasTemplate && templateHtml) {
+            console.log(`📋 Including template HTML (${templateHtml.length} chars)`);
+        }
+
+        const n8nResponse = await axios.post(webhookUrl, n8nPayload, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 120000 // 2 minute timeout for Gemini AI
+        });
+
+        // Log response structure for debugging
+        console.log('📥 n8n response type:', typeof n8nResponse.data);
+        console.log('📥 n8n response is array:', Array.isArray(n8nResponse.data));
+        if (typeof n8nResponse.data === 'object' && !Array.isArray(n8nResponse.data)) {
+            console.log('📥 n8n response keys:', Object.keys(n8nResponse.data));
+        }
+        if (Array.isArray(n8nResponse.data) && n8nResponse.data.length > 0) {
+            console.log('📥 First array item keys:', Object.keys(n8nResponse.data[0] || {}));
+        }
+
+        // Extract HTML content from n8n response
+        let htmlContent = '';
+        if (typeof n8nResponse.data === 'string') {
+            htmlContent = n8nResponse.data;
+        } else if (Array.isArray(n8nResponse.data) && n8nResponse.data.length > 0) {
+            const firstItem = n8nResponse.data[0];
+            if (firstItem.data) {
+                htmlContent = firstItem.data;
+            } else if (firstItem.html) {
+                htmlContent = firstItem.html;
+            } else if (firstItem.body) {
+                htmlContent = firstItem.body;
+            } else if (typeof firstItem === 'string') {
+                htmlContent = firstItem;
+            } else {
+                // Look for any property containing HTML
+                for (const key of Object.keys(firstItem)) {
+                    const value = firstItem[key];
+                    if (typeof value === 'string' && (value.includes('<!DOCTYPE') || value.includes('<html'))) {
+                        htmlContent = value;
+                        console.log(`📋 Found HTML in property: ${key}`);
+                        break;
+                    }
+                }
+            }
+        } else if (n8nResponse.data?.html) {
+            htmlContent = n8nResponse.data.html;
+        } else if (n8nResponse.data?.data) {
+            htmlContent = n8nResponse.data.data;
+        }
+
+        // If still no HTML, log the full response and throw error
+        if (!htmlContent || htmlContent.length < 100) {
+            console.error('❌ n8n response data:', JSON.stringify(n8nResponse.data, null, 2).substring(0, 1000));
+            throw new Error('No valid HTML content received from n8n webhook. Check n8n response structure.');
+        }
+
+        console.log(`✅ Received HTML content (${htmlContent.length} chars)`);
+
+        // Step 2: Launch Puppeteer and render HTML
+        console.log('🎨 Launching Puppeteer to render HTML...');
+        const browser = await getBrowser();
+        page = await browser.newPage();
+
+        // Set viewport to 16:9 aspect ratio (1920x1080)
+        await page.setViewport({
+            width: 1920,
+            height: 1080,
+            deviceScaleFactor: 2 // High quality screenshots
+        });
+
+        // Load HTML content
+        await page.setContent(htmlContent, {
+            waitUntil: ['networkidle0', 'domcontentloaded'],
+            timeout: 30000
+        });
+
+        // Wait for fonts and animations to load
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Step 3: Detect and capture slides
+        console.log('🔍 Detecting slides in HTML...');
+
+        // Find all slide elements using multiple selectors
+        const slideSelectors = ['.slide', 'section.slide', '[class*="slide"]', '.presentation-slide', 'section'];
+        let slides = [];
+        let matchedSelector = '';
+
+        for (const selector of slideSelectors) {
+            const elements = await page.$$(selector);
+            if (elements.length > 0) {
+                slides = elements;
+                matchedSelector = selector;
+                console.log(`📄 Found ${elements.length} slides using selector: "${selector}"`);
+                break;
+            }
+        }
+
+        // Fallback: if no slides found, capture the entire page as one slide
+        if (slides.length === 0) {
+            console.log('⚠️ No slide elements found, capturing entire page as single slide');
+            slides = [await page.$('body')];
+            matchedSelector = 'body';
+        }
+
+        // Step 4: Capture screenshots of each slide
+        console.log(`📸 Capturing screenshots of ${slides.length} slides...`);
+        const slideScreenshots = [];
+
+        for (let i = 0; i < slides.length; i++) {
+            const slide = slides[i];
+
+            // Scroll the slide into view
+            await slide.evaluate(el => el.scrollIntoView({ behavior: 'instant', block: 'start' }));
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Get the bounding box of this slide
+            const boundingBox = await slide.boundingBox();
+
+            if (boundingBox) {
+                // Take screenshot of the specific slide element
+                const screenshot = await slide.screenshot({
+                    type: 'png'
+                });
+
+                slideScreenshots.push(screenshot);
+                console.log(`📸 Captured slide ${i + 1}/${slides.length} (${Math.round(boundingBox.width)}x${Math.round(boundingBox.height)})`);
+            } else {
+                // Fallback: take a viewport screenshot if bounding box fails
+                console.log(`⚠️ Slide ${i + 1} has no bounding box, using viewport screenshot`);
+                const screenshot = await page.screenshot({
+                    type: 'png',
+                    clip: {
+                        x: 0,
+                        y: 0,
+                        width: 1920,
+                        height: 1080
+                    }
+                });
+                slideScreenshots.push(screenshot);
+            }
+        }
+
+        // Close the page (but keep browser for reuse)
+        await page.close();
+        page = null;
+
+        console.log(`✅ Successfully captured ${slideScreenshots.length} slide screenshots`);
+
+        // Step 5: Create PPTX with pptxgenjs
+        console.log('📝 Creating PPTX file...');
+        const pptx = new PptxGenJS();
+
+        // Set presentation properties
+        pptx.layout = 'LAYOUT_WIDE'; // 16:9 format
+        pptx.title = topic;
+        pptx.subject = `Presentation for ${targetAudience}`;
+        pptx.author = 'Digital Dockers Suite';
+
+        // Add each screenshot as a slide
+        for (let i = 0; i < slideScreenshots.length; i++) {
+            const pptSlide = pptx.addSlide();
+
+            // Convert buffer to base64 for pptxgenjs
+            const base64Image = slideScreenshots[i].toString('base64');
+
+            // Add image as full-bleed background
+            pptSlide.addImage({
+                data: `data:image/png;base64,${base64Image}`,
+                x: 0,
+                y: 0,
+                w: '100%',
+                h: '100%',
+                sizing: { type: 'contain', w: '100%', h: '100%' }
+            });
+        }
+
+        // Ensure temp directory exists
+        const tempDir = path.join(__dirname, '..', 'temp');
+        try {
+            await fs.mkdir(tempDir, { recursive: true });
+        } catch (err) {
+            // Directory might already exist
+        }
+
+        // Save PPTX to temp file
+        await pptx.writeFile({ fileName: tempFilePath });
+        console.log(`✅ PPTX saved to: ${tempFilePath}`);
+
+        // Step 6: Send file to client
+        res.download(tempFilePath, `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_presentation.pptx`, async (err) => {
+            // Clean up temp file after download (or on error)
+            try {
+                await fs.unlink(tempFilePath);
+                console.log('🗑️ Temp file cleaned up');
+            } catch (unlinkErr) {
+                console.error('Failed to clean up temp file:', unlinkErr.message);
+            }
+
+            if (err) {
+                console.error('Download error:', err);
+            }
+        });
+
+    } catch (error) {
+        // Clean up on error
+        if (page) {
+            try {
+                await page.close();
+            } catch (closeErr) {
+                console.error('Failed to close page:', closeErr.message);
+            }
+        }
+
+        // Try to clean up temp file if it exists
+        try {
+            await fs.unlink(tempFilePath);
+        } catch (unlinkErr) {
+            // File might not exist yet
+        }
+
+        console.error('❌ PPTX generation error:', error.message);
+        res.status(500);
+        throw new Error(`Failed to generate PPTX: ${error.message}`);
+    }
+});
+
+/**
+ * @desc    Generate PPTX from uploaded template
+ * @route   POST /api/ppt/generate-with-template
+ * @access  Private
+ */
+export const generatePptxWithTemplate = asyncHandler(async (req, res) => {
+    if (!req.file) {
+        res.status(400);
+        throw new Error('No template file uploaded');
+    }
+
+    const { topic, targetAudience, keyPoints, colorScheme } = req.body;
+
+    // Validate required fields
+    if (!topic || !targetAudience || !keyPoints || !colorScheme) {
+        res.status(400);
+        throw new Error('All fields are required: topic, targetAudience, keyPoints, colorScheme');
+    }
+
+    const pptxPath = req.file.path;
+    const templateName = req.file.originalname;
+
+    console.log(`🚀 Generating PPTX with template: "${templateName}" for topic: "${topic}"`);
+
+    let page = null;
+    const tempFilePath = path.join(__dirname, '..', 'temp', `presentation_${Date.now()}.pptx`);
+
+    try {
+        // Step 1: Convert PPTX Template to HTML
+        console.log('🔄 Converting PPTX template to HTML...');
+        const pptxBuffer = await fs.readFile(pptxPath);
+
+        let templateHtml = '';
+        try {
+            const converter = pptxToHtml.PPTXInHTMLOut ? new pptxToHtml.PPTXInHTMLOut(pptxBuffer) :
+                pptxToHtml.default ? new pptxToHtml.default(pptxBuffer) : null;
+
+            if (converter) {
+                templateHtml = await converter.toHTML();
+            } else {
+                // Fallback: try as function
+                const convertFn = pptxToHtml.default || pptxToHtml;
+                templateHtml = await convertFn(pptxBuffer);
+            }
+        } catch (convErr) {
+            console.error('PPTX to HTML conversion error:', convErr);
+            throw new Error('Failed to convert template: ' + convErr.message);
+        }
+
+        if (!templateHtml || templateHtml.length < 50) {
+            throw new Error('Template conversion produced empty or invalid HTML');
+        }
+
+        console.log(`✅ Template converted to HTML (${templateHtml.length} chars)`);
+
+        // Step 2: Call n8n webhook with template HTML
+        const webhookUrl = process.env.N8N_PPT_WEBHOOK_URL;
+        console.log('🔗 Using webhook URL:', webhookUrl || '(undefined)');
+
+        if (!webhookUrl) {
+            throw new Error('N8N_PPT_WEBHOOK_URL environment variable is not set');
+        }
+
+        console.log('📡 Calling n8n webhook with template HTML...');
+        const n8nPayload = [{
+            "Topic": topic,
+            "Target Audience": targetAudience,
+            "Key Points to Cover": keyPoints,
+            "Preferred Color Scheme": colorScheme,
+            "hasTemplate": true,
+            "templateHtml": templateHtml,
+            "templateName": templateName,
+            "submittedAt": getISOWithTimezone(),
+            "formMode": "production"
+        }];
+
+        console.log(`📋 Payload includes templateHtml (${templateHtml.length} chars)`);
+
+        const n8nResponse = await axios.post(webhookUrl, n8nPayload, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 180000 // 3 minute timeout for template processing
+        });
+
+        // Extract HTML content from n8n response
+        let htmlContent = '';
+        if (typeof n8nResponse.data === 'string') {
+            htmlContent = n8nResponse.data;
+        } else if (Array.isArray(n8nResponse.data) && n8nResponse.data.length > 0) {
+            const firstItem = n8nResponse.data[0];
+            htmlContent = firstItem.data || firstItem.html || firstItem.modifiedHtml || firstItem.body || '';
+
+            if (!htmlContent && typeof firstItem === 'object') {
+                for (const key of Object.keys(firstItem)) {
+                    const value = firstItem[key];
+                    if (typeof value === 'string' && (value.includes('<!DOCTYPE') || value.includes('<html'))) {
+                        htmlContent = value;
+                        break;
+                    }
+                }
+            }
+        } else if (n8nResponse.data?.html || n8nResponse.data?.modifiedHtml) {
+            htmlContent = n8nResponse.data.html || n8nResponse.data.modifiedHtml;
+        }
+
+        if (!htmlContent || htmlContent.length < 100) {
+            console.error('❌ n8n response data:', JSON.stringify(n8nResponse.data, null, 2).substring(0, 1000));
+            throw new Error('No valid HTML content received from n8n webhook');
+        }
+
+        console.log(`✅ Received modified HTML content (${htmlContent.length} chars)`);
+
+        // Step 3: Launch Puppeteer and render HTML
+        console.log('🎨 Launching Puppeteer to render HTML...');
+        const browser = await getBrowser();
+        page = await browser.newPage();
+
+        await page.setViewport({
+            width: 1920,
+            height: 1080,
+            deviceScaleFactor: 2
+        });
+
+        await page.setContent(htmlContent, {
+            waitUntil: ['networkidle0', 'domcontentloaded'],
+            timeout: 30000
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Step 4: Detect and capture slides
+        console.log('🔍 Detecting slides in HTML...');
+        const slideSelectors = ['.slide', 'section.slide', '[class*="slide"]', '.presentation-slide', 'section'];
+        let slides = [];
+
+        for (const selector of slideSelectors) {
+            const elements = await page.$$(selector);
+            if (elements.length > 0) {
+                slides = elements;
+                console.log(`📄 Found ${elements.length} slides using selector: "${selector}"`);
+                break;
+            }
+        }
+
+        if (slides.length === 0) {
+            console.log('⚠️ No slide elements found, capturing entire page as single slide');
+            slides = [await page.$('body')];
+        }
+
+        // Step 5: Capture screenshots
+        console.log(`📸 Capturing screenshots of ${slides.length} slides...`);
+        const slideScreenshots = [];
+
+        for (let i = 0; i < slides.length; i++) {
+            const slide = slides[i];
+            await slide.evaluate(el => el.scrollIntoView({ behavior: 'instant', block: 'start' }));
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            const boundingBox = await slide.boundingBox();
+            if (boundingBox) {
+                const screenshot = await slide.screenshot({ type: 'png' });
+                slideScreenshots.push(screenshot);
+                console.log(`📸 Captured slide ${i + 1}/${slides.length}`);
+            } else {
+                const screenshot = await page.screenshot({
+                    type: 'png',
+                    clip: { x: 0, y: 0, width: 1920, height: 1080 }
+                });
+                slideScreenshots.push(screenshot);
+            }
+        }
+
+        await page.close();
+        page = null;
+
+        console.log(`✅ Successfully captured ${slideScreenshots.length} slide screenshots`);
+
+        // Step 6: Create PPTX
+        console.log('📝 Creating PPTX file...');
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_WIDE';
+        pptx.title = topic;
+        pptx.subject = `Presentation for ${targetAudience}`;
+        pptx.author = 'Digital Dockers Suite';
+
+        for (let i = 0; i < slideScreenshots.length; i++) {
+            const pptSlide = pptx.addSlide();
+            const base64Image = slideScreenshots[i].toString('base64');
+            pptSlide.addImage({
+                data: `data:image/png;base64,${base64Image}`,
+                x: 0, y: 0, w: '100%', h: '100%',
+                sizing: { type: 'contain', w: '100%', h: '100%' }
+            });
+        }
+
+        const tempDir = path.join(__dirname, '..', 'temp');
+        try {
+            await fs.mkdir(tempDir, { recursive: true });
+        } catch (err) { }
+
+        await pptx.writeFile({ fileName: tempFilePath });
+        console.log(`✅ PPTX saved to: ${tempFilePath}`);
+
+        // Step 7: Send file to client and cleanup
+        res.download(tempFilePath, `${topic.replace(/[^a-zA-Z0-9]/g, '_')}_presentation.pptx`, async (err) => {
+            try {
+                await fs.unlink(tempFilePath);
+                await fs.unlink(pptxPath); // Delete uploaded template
+                console.log('🗑️ Temp files cleaned up');
+            } catch (unlinkErr) {
+                console.error('Failed to clean up temp files:', unlinkErr.message);
+            }
+
+            if (err) {
+                console.error('Download error:', err);
+            }
+        });
+
+    } catch (error) {
+        if (page) {
+            try { await page.close(); } catch (closeErr) { }
+        }
+
+        try { await fs.unlink(tempFilePath); } catch (e) { }
+        try { await fs.unlink(pptxPath); } catch (e) { }
+
+        console.error('❌ Template PPTX generation error:', error.message);
+        res.status(500);
+        throw new Error(`Failed to generate PPTX from template: ${error.message}`);
+    }
+});
+
+/**
+ * @desc    Health check for PPT service
+ * @route   GET /api/ppt/health
+ * @access  Public
+ */
+export const healthCheck = asyncHandler(async (req, res) => {
+    res.json({
+        status: 'ok',
+        service: 'ppt-generator',
+        browserConnected: browserInstance ? browserInstance.isConnected() : false
+    });
+});
