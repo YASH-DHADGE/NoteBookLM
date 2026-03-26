@@ -46,6 +46,14 @@ export const userAPI = {
     deleteAccount: () => api.delete('/users/account'),
 };
 
+// Notebook API
+export const notebookAPI = {
+    getAll: () => api.get('/notebooks'),
+    getOne: (id) => api.get(`/notebooks/${id}`),
+    create: (data) => api.post('/notebooks', data),
+    delete: (id) => api.delete(`/notebooks/${id}`),
+};
+
 // Content API
 export const contentAPI = {
     // Upload
@@ -66,6 +74,7 @@ export const contentAPI = {
     generateFlashcards: (id, options) => api.post(`/content/${id}/flashcards`, options),
     generateQuiz: (id, options) => api.post(`/content/${id}/quiz`, options),
     generateMindMap: (id) => api.post(`/content/${id}/mindmap`),
+    generatePodcast: (id) => api.post(`/content/${id}/podcast`),
 
     // Flashcard updates
     updateFlashcard: (contentId, flashcardId, data) =>

@@ -1,0 +1,107 @@
+{
+    "name": "(NoteBookLM)Mindmap Generator",
+    "nodes": [
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "models/gemini-1.5-flash",
+                    "mode": "list",
+                    "cachedResultName": "models/gemini-1.5-flash"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "You are an expert educational content analyzer. Your task is to analyze the provided text and generate a structured mind map representation of its core concepts.\n\nIdentify the central theme, major subtopics, and key supporting details.\n\nOrganize Information: Structure the content hierarchically. The root is the main topic, the first level contains major subtopics, and the next levels contain supporting details and concepts.\n\nOutput Format (Return ONLY valid JSON):\n{\n  \"mindmap\": {\n    \"name\": \"Central Theme or Document Title\",\n    \"children\": [\n      {\n        \"name\": \"Subtopic 1\",\n        \"children\": [\n          { \"name\": \"Key Detail 1\" },\n          { \"name\": \"Key Detail 2\" }\n        ]\n      },\n      {\n        \"name\": \"Subtopic 2\",\n        \"children\": [\n          { \"name\": \"Key Detail 3\" }\n        ]\n      }\n    ]\n  }\n}\n\nDocument Title: {{ $json.title }}\nDocument Type: {{ $json.type }}\nWord Count: {{ $json.wordCount }}\n\nInput Text:\n{{ $json.text }}"
+                        }
+                    ]
+                },
+                "simplify": false,
+                "builtInTools": {},
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.googleGemini",
+            "typeVersion": 1.1,
+            "position": [
+                220,
+                0
+            ],
+            "id": "model-node-mindmap",
+            "name": "Message a model",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "LonvicK3RMdRqQ4a",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "allIncomingItems",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [
+                560,
+                0
+            ],
+            "id": "respond-node-mindmap",
+            "name": "Respond to Webhook"
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "notebooklm-mindmap",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -20,
+                0
+            ],
+            "id": "webhook-node-mindmap",
+            "name": "Webhook",
+            "webhookId": "notebooklm-mindmap-webhook-id-123"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Message a model",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Message a model": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1",
+        "availableInMCP": false
+    },
+    "versionId": "mindmap-version-1",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "83136fb25943862c63133e19c91072ed726e037df3bf1f10e85998996024567d"
+    },
+    "id": "NoteBookLMMindmap01",
+    "tags": []
+}

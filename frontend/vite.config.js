@@ -5,6 +5,11 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 5173,
+        headers: {
+            // Required for SharedArrayBuffer used by kokoro-js WASM
+            'Cross-Origin-Opener-Policy': 'same-origin',
+            'Cross-Origin-Embedder-Policy': 'require-corp',
+        },
         proxy: {
             '/api': {
                 target: 'http://localhost:5000',
@@ -12,4 +17,8 @@ export default defineConfig({
             },
         },
     },
+    optimizeDeps: {
+        exclude: ['kokoro-js'],
+    },
 });
+

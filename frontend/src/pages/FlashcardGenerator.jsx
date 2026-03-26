@@ -20,6 +20,7 @@ import './FlashcardGenerator.css';
 const FlashcardGenerator = () => {
     const [searchParams] = useSearchParams();
     const contentId = searchParams.get('contentId');
+    const notebookId = searchParams.get('notebookId');
 
     const [content, setContent] = useState(null);
     const [flashcards, setFlashcards] = useState([]);
@@ -118,8 +119,8 @@ const FlashcardGenerator = () => {
             <main className="flashcard-main">
                 <div className="flashcard-container container">
                     <div className="flashcard-header">
-                        <Link to="/content-analyzer" className="back-link">
-                            <FiArrowLeft /> Back to Content Analyzer
+                        <Link to={notebookId ? `/notebook/${notebookId}` : "/dashboard"} className="back-link">
+                            <FiArrowLeft /> Back to {notebookId ? 'Notebook' : 'Dashboard'}
                         </Link>
                         <h1 className="flashcard-title">
                             <FiBookOpen className="title-icon" />
@@ -201,8 +202,8 @@ const FlashcardGenerator = () => {
                                     <FiBookOpen size={48} />
                                     <h3>No Content Selected</h3>
                                     <p>Please select a document from the Content Analyzer to generate flashcards.</p>
-                                    <Link to="/content-analyzer" className="action-link">
-                                        Go to Content Analyzer
+                                    <Link to={notebookId ? `/notebook/${notebookId}` : "/dashboard"} className="action-link">
+                                        Go to {notebookId ? 'Notebook' : 'Dashboard'}
                                     </Link>
                                 </div>
                             ) : flashcards.length === 0 ? (

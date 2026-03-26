@@ -1,0 +1,96 @@
+{
+    "name": "(NoteBookLM)Podcast Generator",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "podcast",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [0, 0],
+            "id": "pod-0001-0001-0001-000000000001",
+            "name": "Webhook",
+            "webhookId": "podcast"
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "models/gemini-flash-lite-latest",
+                    "mode": "list",
+                    "cachedResultName": "models/gemini-flash-lite-latest"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "You are a professional podcast script writer. Transform the document below into a natural, engaging podcast conversation between two hosts — Alex (thoughtful, asks great questions) and Sam (the expert who has read the document thoroughly).\n\nInstructions:\n- Write it as a back-and-forth dialogue that covers all key points from the document\n- Make it conversational, warm, and engaging — like a real podcast episode\n- Include a brief intro, deep dive into main topics, interesting tangents, and a strong outro\n- Each speaker gets multiple turns, naturally building on the previous point\n- Target length: 8–12 minutes of spoken audio (approximately 1200–1800 words)\n- Add light humor, analogies, and 'wow' moments to make it memorable\n\nReturn a PURE JSON object ONLY, no markdown fences:\n{\n  \"title\": \"Episode title based on the document\",\n  \"description\": \"A 2-3 sentence podcast description\",\n  \"duration_estimate\": \"Estimated listen time e.g. '10 min'\",\n  \"script\": [\n    { \"speaker\": \"Alex\", \"text\": \"...\" },\n    { \"speaker\": \"Sam\", \"text\": \"...\" }\n  ]\n}\n\nDocument Title: {{ $json.body.title }}\nDocument Type: {{ $json.body.type }}\nWord Count: {{ $json.body.wordCount }}\n\nDocument Text:\n{{ $json.body.text }}"
+                        }
+                    ]
+                },
+                "simplify": false,
+                "builtInTools": {},
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.googleGemini",
+            "typeVersion": 1.1,
+            "position": [300, 0],
+            "id": "pod-0002-0002-0002-000000000002",
+            "name": "Generate Podcast Script",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "LonvicK3RMdRqQ4a",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "allIncomingItems",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [600, 0],
+            "id": "pod-0003-0003-0003-000000000003",
+            "name": "Respond to Webhook"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Podcast Script",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Podcast Script": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1",
+        "availableInMCP": false
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "83136fb25943862c63133e19c91072ed726e037df3bf1f10e85998996024567d"
+    },
+    "tags": []
+}

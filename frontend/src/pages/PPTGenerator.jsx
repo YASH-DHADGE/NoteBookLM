@@ -213,7 +213,7 @@ const PPTGenerator = () => {
                 <div className="ppt-container container">
                     <div className="ppt-header">
                         <Link to="/dashboard" className="back-link">
-                            <FiArrowLeft /> Back to Dashboard
+                            <FiArrowLeft /> Back to Notebooks
                         </Link>
                         <h1 className="ppt-title">
                             <FiZap className="title-icon" />

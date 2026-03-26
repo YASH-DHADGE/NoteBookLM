@@ -136,6 +136,57 @@ const getContentType = (mimeType) => {
 };
 
 /**
+ * Extract text from AI response (handles various Gemini formats)
+ */
+const extractAiText = (responseData) => {
+    if (!responseData) return '';
+
+    // Handle n8n array response
+    let data = responseData;
+    if (Array.isArray(data) && data.length > 0) {
+        data = data[0];
+    }
+
+    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        // Full Gemini API response
+        return data.candidates[0].content.parts[0].text;
+    }
+
+    if (data?.content?.parts?.[0]?.text) {
+        // Direct candidate/content object
+        return data.content.parts[0].text;
+    }
+
+    if (data?.text && typeof data.text === 'string') {
+        // Plain text field
+        return data.text;
+    }
+
+    if (data?.output && typeof data.output === 'string') {
+        // n8n Gemini node output
+        return data.output;
+    }
+
+    if (data?.response && typeof data.response === 'string') {
+        // General response field
+        return data.response;
+    }
+
+    if (typeof data === 'string') {
+        // Direct string response
+        return data;
+    }
+
+    // Attempt to stringify if it's an object but we don't know the structure
+    // (This is the fallback that caused the issue, but we've added more checks above)
+    try {
+        return typeof data === 'object' ? JSON.stringify(data) : String(data);
+    } catch {
+        return '';
+    }
+};
+
+/**
  * @desc    Upload content file
  * @route   POST /api/content/upload
  * @access  Private
@@ -148,7 +199,7 @@ export const uploadContent = asyncHandler(async (req, res) => {
 
     console.log('📤 File uploaded:', req.file.originalname);
 
-    const { title } = req.body;
+    const { title, notebookId } = req.body;
     const file = req.file;
 
     // Extract text from document
@@ -160,6 +211,7 @@ export const uploadContent = asyncHandler(async (req, res) => {
     // Create content record
     const content = await Content.create({
         user: req.user._id,
+        notebook: notebookId,
         title: title || file.originalname.replace(/\.[^/.]+$/, ''),
         type: getContentType(file.mimetype),
         originalFilename: file.originalname,
@@ -189,7 +241,7 @@ export const uploadContent = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const uploadFromUrl = asyncHandler(async (req, res) => {
-    const { url, title } = req.body;
+    const { url, title, notebookId } = req.body;
 
     if (!url) {
         res.status(400);
@@ -215,6 +267,7 @@ export const uploadFromUrl = asyncHandler(async (req, res) => {
 
     const content = await Content.create({
         user: req.user._id,
+        notebook: notebookId,
         title: title || url,
         type: contentType,
         sourceUrl: url,
@@ -307,34 +360,7 @@ export const analyzeContent = asyncHandler(async (req, res) => {
             console.log('📦 Unwrapped array response');
         }
 
-        // Extract text from Gemini API response format: candidates[0].content.parts[0].text
-        let analysisText = '';
-
-        if (responseData?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            // Gemini API response format
-            analysisText = responseData.candidates[0].content.parts[0].text;
-            console.log('📦 Extracted text from candidates[0].content.parts[0].text');
-        } else if (responseData?.output) {
-            // n8n Gemini node output format
-            analysisText = responseData.output;
-            console.log('📦 Extracted from output field');
-        } else if (responseData?.text) {
-            // Simple text field
-            analysisText = responseData.text;
-            console.log('📦 Extracted from text field');
-        } else if (responseData?.response) {
-            // Response field
-            analysisText = responseData.response;
-            console.log('📦 Extracted from response field');
-        } else if (typeof responseData === 'string') {
-            // Direct string response
-            analysisText = responseData;
-            console.log('📦 Using direct string response');
-        } else {
-            // Try to stringify the whole response
-            analysisText = JSON.stringify(responseData);
-            console.log('📦 Stringified entire response');
-        }
+        const analysisText = extractAiText(response.data);
 
         console.log('📝 Analysis text length:', analysisText.length, 'characters');
         console.log('📝 Analysis text preview:', analysisText.substring(0, 200));
@@ -470,19 +496,51 @@ export const generateFlashcards = asyncHandler(async (req, res) => {
         });
 
         console.log('✅ n8n response status:', response.status);
+        console.log('📥 n8n raw response type:', typeof response.data);
+        console.log('📥 n8n raw response (first 500 chars):', JSON.stringify(response.data).substring(0, 500));
 
-        // Parse flashcards from response
+        // Parse flashcards from response — handle multiple n8n/Gemini output formats
         let flashcards = [];
-        if (Array.isArray(response.data)) {
-            flashcards = response.data;
-        } else if (response.data?.flashcards) {
-            flashcards = response.data.flashcards;
-        } else if (typeof response.data === 'string') {
-            try {
-                const parsed = JSON.parse(response.data);
-                flashcards = Array.isArray(parsed) ? parsed : parsed.flashcards || [];
-            } catch {
-                console.error('Failed to parse flashcard response');
+        let rawData = response.data;
+
+        // Unwrap n8n array wrapper
+        if (Array.isArray(rawData) && rawData.length > 0) {
+            rawData = rawData[0];
+        }
+
+        if (Array.isArray(rawData)) {
+            // Direct array of flashcards
+            flashcards = rawData;
+        } else if (rawData?.flashcards && Array.isArray(rawData.flashcards)) {
+            // { flashcards: [...] }
+            flashcards = rawData.flashcards;
+        } else {
+            // Try to extract a JSON array from text (Gemini often returns JSON inside markdown)
+            const textContent = extractAiText(rawData);
+            console.log('📦 Trying to extract flashcards from AI text, length:', textContent.length);
+
+            // Look for a JSON array in the text (handles ```json ... ``` fences too)
+            const jsonMatch = textContent.match(/\[[\s\S]*?\]/);
+            if (jsonMatch) {
+                try {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (Array.isArray(parsed)) {
+                        flashcards = parsed;
+                        console.log('✅ Extracted flashcard array from AI text');
+                    }
+                } catch (e) {
+                    console.error('❌ Failed to parse extracted JSON array:', e.message);
+                }
+            }
+
+            // Also try parsing the entire text as JSON
+            if (flashcards.length === 0) {
+                try {
+                    const parsed = JSON.parse(textContent);
+                    flashcards = Array.isArray(parsed) ? parsed : parsed.flashcards || [];
+                } catch {
+                    // Not JSON, that's fine
+                }
             }
         }
 
@@ -493,8 +551,8 @@ export const generateFlashcards = asyncHandler(async (req, res) => {
 
         // Normalize flashcard format
         content.flashcards = flashcards.map((card, index) => ({
-            question: card.question || card.q || card.front || '',
-            answer: card.answer || card.a || card.back || '',
+            question: extractAiText(card.question || card.q || card.front || card),
+            answer: extractAiText(card.answer || card.a || card.back || ''),
             difficulty: card.difficulty || difficulty,
             topic: card.topic || '',
             sourceReference: card.source || '',
@@ -565,11 +623,12 @@ export const generateFlashcards = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const getContents = asyncHandler(async (req, res) => {
-    const { type, status, limit = 20, page = 1 } = req.query;
+    const { type, status, limit = 20, page = 1, notebookId } = req.query;
 
     const query = { user: req.user._id };
     if (type) query.type = type;
     if (status) query.status = status;
+    if (notebookId) query.notebook = notebookId;
 
     const contents = await Content.find(query)
         .select('-extractedText -flashcards')
@@ -786,10 +845,10 @@ export const generateQuiz = asyncHandler(async (req, res) => {
         let questions = Array.isArray(quizData) ? quizData : quizData?.questions || quizData?.quiz || [];
 
         content.quiz = questions.map((q, index) => ({
-            question: q.question || q.q || '',
-            options: q.options || q.choices || [],
+            question: extractAiText(q.question || q.q || q),
+            options: Array.isArray(q.options || q.choices) ? (q.options || q.choices) : [],
             correctAnswer: q.correctAnswer ?? q.correct ?? q.answer ?? 0,
-            explanation: q.explanation || '',
+            explanation: extractAiText(q.explanation || ''),
             difficulty: q.difficulty || difficulty,
             topic: q.topic || '',
         }));
@@ -925,3 +984,98 @@ export const generateMindMap = asyncHandler(async (req, res) => {
         throw new Error(`Mind map generation failed: ${error.message}`);
     }
 });
+
+/**
+ * @desc    Generate podcast script from content
+ * @route   POST /api/content/:id/podcast
+ * @access  Private
+ */
+export const generatePodcast = asyncHandler(async (req, res) => {
+    const content = await Content.findOne({
+        _id: req.params.id,
+        user: req.user._id,
+    });
+
+    if (!content) {
+        res.status(404);
+        throw new Error('Content not found');
+    }
+
+    const textToUse = content.summary?.detailedAnalysis || content.extractedText;
+
+    if (!textToUse || textToUse.length < 50) {
+        res.status(400);
+        throw new Error('Not enough text content. Please analyze the document first.');
+    }
+
+    console.log(`🎙️ Generating podcast for:`, content.title);
+
+    const webhookUrl = process.env.N8N_PODCAST_URL;
+
+    if (!webhookUrl) {
+        res.status(500);
+        throw new Error('Podcast service not configured. N8N_PODCAST_URL missing in backend .env');
+    }
+
+    try {
+        const n8nPayload = {
+            contentId: content._id.toString(),
+            title: content.title,
+            type: content.type,
+            wordCount: content.wordCount,
+            text: textToUse.substring(0, 50000),
+        };
+
+        console.log('📡 Calling n8n webhook for podcast generation...');
+
+        const response = await axios.post(webhookUrl, n8nPayload, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 180000, // 3 min — podcast scripts are long
+        });
+
+        console.log('✅ n8n podcast response status:', response.status);
+        console.log('📥 Raw response preview:', JSON.stringify(response.data).substring(0, 300));
+
+        // Extract the text from Gemini response
+        const rawText = extractAiText(response.data);
+
+        // Attempt to parse as JSON (podcast script object)
+        let podcastData = null;
+
+        // Try to find a JSON object in the text
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                podcastData = JSON.parse(jsonMatch[0]);
+                console.log('✅ Parsed podcast JSON successfully');
+            } catch (e) {
+                console.error('⚠️ Failed to parse podcast JSON, using raw text');
+            }
+        }
+
+        // Fallback: wrap raw text into a script structure
+        if (!podcastData || !podcastData.script) {
+            podcastData = {
+                title: `${content.title} — Podcast Overview`,
+                description: `An AI-generated podcast discussion about "${content.title}"`,
+                duration_estimate: '~10 min',
+                script: [
+                    { speaker: 'Alex', text: rawText }
+                ],
+            };
+        }
+
+        res.json({
+            success: true,
+            data: {
+                id: content._id,
+                podcast: podcastData,
+            },
+        });
+    } catch (error) {
+        console.error('❌ Podcast generation error:', error.message);
+        res.status(502);
+        throw new Error(`Podcast generation failed: ${error.message}`);
+    }
+});
+

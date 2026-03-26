@@ -75,6 +75,10 @@ const contentSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        notebook: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Notebook',
+        },
         title: {
             type: String,
             required: true,

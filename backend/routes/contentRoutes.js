@@ -6,6 +6,7 @@ import {
     generateFlashcards,
     generateQuiz,
     generateMindMap,
+    generatePodcast,
     getContents,
     getContent,
     updateFlashcard,
@@ -33,6 +34,7 @@ router.post('/:id/analyze', analyzeContent);
 router.post('/:id/flashcards', generateFlashcards);
 router.post('/:id/quiz', generateQuiz);
 router.post('/:id/mindmap', generateMindMap);
+router.post('/:id/podcast', generatePodcast);
 
 // Flashcard update
 router.patch('/:id/flashcards/:flashcardId', updateFlashcard);

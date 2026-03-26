@@ -1,0 +1,96 @@
+{
+    "name": "(NoteBookLM)Flashcard Generator",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "cards",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [0, 0],
+            "id": "a1b2c3d4-0001-0001-0001-000000000001",
+            "name": "Webhook",
+            "webhookId": "cards"
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "models/gemini-flash-lite-latest",
+                    "mode": "list",
+                    "cachedResultName": "models/gemini-flash-lite-latest"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "You are an expert educational flashcard creator. Based on the document text below, generate exactly {{ $json.body.count }} study flashcards.\n\nRules:\n- Each flashcard must have a clear, specific question and a concise answer.\n- Focus on key concepts, definitions, facts, and important relationships.\n- Vary difficulty: some should be straightforward recall, others should require understanding.\n- Do NOT wrap the output in markdown code fences.\n- Return a PURE JSON array ONLY, no explanations before or after.\n\nOutput format (strict JSON array):\n[\n  {\"question\": \"What is X?\", \"answer\": \"X is ...\"},\n  {\"question\": \"...\", \"answer\": \"...\"}\n]\n\nDocument Title: {{ $json.body.title }}\nDifficulty: {{ $json.body.difficulty }}\n\nDocument Text:\n{{ $json.body.text }}"
+                        }
+                    ]
+                },
+                "simplify": false,
+                "builtInTools": {},
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.googleGemini",
+            "typeVersion": 1.1,
+            "position": [300, 0],
+            "id": "a1b2c3d4-0002-0002-0002-000000000002",
+            "name": "Generate Flashcards",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "LonvicK3RMdRqQ4a",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "allIncomingItems",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [600, 0],
+            "id": "a1b2c3d4-0003-0003-0003-000000000003",
+            "name": "Respond to Webhook"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Flashcards",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Flashcards": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1",
+        "availableInMCP": false
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "83136fb25943862c63133e19c91072ed726e037df3bf1f10e85998996024567d"
+    },
+    "tags": []
+}

@@ -21,6 +21,7 @@ import './QuizGenerator.css';
 const QuizGenerator = () => {
     const [searchParams] = useSearchParams();
     const contentId = searchParams.get('contentId');
+    const notebookId = searchParams.get('notebookId');
 
     const [content, setContent] = useState(null);
     const [quiz, setQuiz] = useState([]);
@@ -150,8 +151,8 @@ const QuizGenerator = () => {
             <main className="quiz-main">
                 <div className="quiz-container container">
                     <div className="quiz-header">
-                        <Link to="/content-analyzer" className="back-link">
-                            <FiArrowLeft /> Back to Content Analyzer
+                        <Link to={notebookId ? `/notebook/${notebookId}` : "/dashboard"} className="back-link">
+                            <FiArrowLeft /> Back to {notebookId ? 'Notebook' : 'Dashboard'}
                         </Link>
                         <h1 className="quiz-title">
                             <FiHelpCircle className="title-icon" />
@@ -231,8 +232,8 @@ const QuizGenerator = () => {
                                     <FiHelpCircle size={48} />
                                     <h3>No Content Selected</h3>
                                     <p>Please select a document from the Content Analyzer to generate a quiz.</p>
-                                    <Link to="/content-analyzer" className="action-link">
-                                        Go to Content Analyzer
+                                    <Link to={notebookId ? `/notebook/${notebookId}` : "/dashboard"} className="action-link">
+                                        Go to {notebookId ? 'Notebook' : 'Dashboard'}
                                     </Link>
                                 </div>
                             ) : quiz.length === 0 ? (

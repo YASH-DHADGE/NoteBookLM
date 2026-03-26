@@ -8,18 +8,19 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import NotebookSelection from './pages/NotebookSelection';
 import Profile from './pages/Profile';
 import PPTGenerator from './pages/PPTGenerator';
-import ContentAnalyzer from './pages/ContentAnalyzer';
 import FlashcardGenerator from './pages/FlashcardGenerator';
 import QuizGenerator from './pages/QuizGenerator';
+import PodcastPlayer from './pages/PodcastPlayer';
 
 // Styles
 import './styles/index.css';
 
 function App() {
     return (
-        <Router>
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
                 <Toaster
                     position="top-right"
@@ -56,6 +57,14 @@ function App() {
                         path="/dashboard"
                         element={
                             <ProtectedRoute>
+                                <NotebookSelection />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/notebook/:notebookId"
+                        element={
+                            <ProtectedRoute>
                                 <Dashboard />
                             </ProtectedRoute>
                         }
@@ -77,14 +86,6 @@ function App() {
                         }
                     />
                     <Route
-                        path="/content-analyzer"
-                        element={
-                            <ProtectedRoute>
-                                <ContentAnalyzer />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
                         path="/flashcards"
                         element={
                             <ProtectedRoute>
@@ -97,6 +98,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <QuizGenerator />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/podcast"
+                        element={
+                            <ProtectedRoute>
+                                <PodcastPlayer />
                             </ProtectedRoute>
                         }
                     />
