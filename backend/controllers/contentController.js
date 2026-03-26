@@ -958,14 +958,34 @@ export const generateMindMap = asyncHandler(async (req, res) => {
 
         console.log('✅ n8n response status:', response.status);
 
-        let mindmapData = response.data;
+        const rawText = extractAiText(response.data);
+        let mindmapData = null;
 
-        if (Array.isArray(mindmapData) && mindmapData.length > 0) {
-            mindmapData = mindmapData[0];
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                mindmapData = JSON.parse(jsonMatch[0]);
+                console.log('✅ Parsed mindmap JSON successfully');
+            } catch (e) {
+                console.error('⚠️ Failed to parse mindmap JSON, using raw payload');
+            }
+        }
+
+        // Handle the nested wrapper from the prompt
+        let rootNode = { id: 'root', label: content.title, children: [] };
+        if (mindmapData && mindmapData.mindmap) {
+            const mapNode = (node) => ({
+                id: node.id || Math.random().toString(36).substr(2, 9),
+                label: node.name || node.label || 'No Name',
+                children: (node.children || []).map(mapNode)
+            });
+            rootNode = mapNode(mindmapData.mindmap);
+        } else if (mindmapData && mindmapData.rootNode) {
+            rootNode = mindmapData.rootNode;
         }
 
         content.mindmap = {
-            rootNode: mindmapData?.rootNode || mindmapData || { id: 'root', label: content.title, children: [] },
+            rootNode,
             generatedAt: new Date(),
         };
         content.status = 'mindmap_generated';

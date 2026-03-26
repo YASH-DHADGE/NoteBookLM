@@ -302,7 +302,12 @@ const Dashboard = () => {
             action: () => selectedContent ? navigate(`/podcast?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first') 
         },
         { icon: <FiVideo />, label: 'Video Overview', iconClass: 'video', action: () => toast('Coming soon!') },
-        { icon: <FiMapPin />, label: 'Mind Map', iconClass: 'mindmap', action: () => toast('Coming soon!') },
+        { 
+            icon: <FiMapPin />, 
+            label: 'Mind Map', 
+            iconClass: 'mindmap', 
+            action: () => selectedContent ? navigate(`/mindmap?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first') 
+        },
         { icon: <FiBarChart />, label: 'Reports', iconClass: 'reports', action: () => toast('Coming soon!') },
         {
             icon: <FiBookOpen />,

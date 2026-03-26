@@ -14,6 +14,7 @@ import PPTGenerator from './pages/PPTGenerator';
 import FlashcardGenerator from './pages/FlashcardGenerator';
 import QuizGenerator from './pages/QuizGenerator';
 import PodcastPlayer from './pages/PodcastPlayer';
+import MindmapGenerator from './pages/MindmapGenerator';
 
 // Styles
 import './styles/index.css';
@@ -106,6 +107,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <PodcastPlayer />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/mindmap"
+                        element={
+                            <ProtectedRoute>
+                                <MindmapGenerator />
                             </ProtectedRoute>
                         }
                     />

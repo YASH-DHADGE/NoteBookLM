@@ -1,0 +1,95 @@
+{
+    "name": "(NoteBookLM)Quiz Generator",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "generate-quiz",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [0, 0],
+            "id": "q1b2c3d4-0001-0001-0001-000000000001",
+            "name": "Webhook",
+            "webhookId": "generate-quiz"
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "models/gemini-flash-lite-latest",
+                    "mode": "list",
+                    "cachedResultName": "models/gemini-flash-lite-latest"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "You are an expert educational quiz creator. Based on the document text below, generate exactly {{ $json.body.count || 10 }} multiple-choice quiz questions.\n\nRules:\n- Each question must have exactly 4 options.\n- 'correctAnswer' must be an integer from 0 to 3 indicating the index of the correct option.\n- Include an 'explanation' for why the answer is correct.\n- Vary difficulty based on this requested difficulty level: {{ $json.body.difficulty || 'medium' }}.\n- Do NOT wrap the output in markdown code fences.\n- Return a PURE JSON array ONLY, no explanations before or after.\n\nOutput format (strict JSON array):\n[\n  {\n    \"question\": \"What is X?\",\n    \"options\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"],\n    \"correctAnswer\": 1,\n    \"explanation\": \"Because B is...\",\n    \"difficulty\": \"medium\",\n    \"topic\": \"General\"\n  }\n]\n\nDocument Title: {{ $json.body.title }}\n\nDocument Text:\n{{ $json.body.text }}"
+                        }
+                    ]
+                },
+                "simplify": false,
+                "builtInTools": {},
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.googleGemini",
+            "typeVersion": 1.1,
+            "position": [300, 0],
+            "id": "q1b2c3d4-0002-0002-0002-000000000002",
+            "name": "Generate Quiz",
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "LonvicK3RMdRqQ4a",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "allIncomingItems",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.5,
+            "position": [600, 0],
+            "id": "q1b2c3d4-0003-0003-0003-000000000003",
+            "name": "Respond to Webhook"
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Generate Quiz",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate Quiz": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1",
+        "availableInMCP": false
+    },
+    "meta": {
+        "templateCredsSetupCompleted": true
+    },
+    "tags": []
+}
