@@ -22,12 +22,12 @@
 .button-primary {
     background: var(--color-accent-gradient);
     color: white;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 15px rgba(15, 118, 110, 0.4);
 }
 
 .button-primary:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 25px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 6px 25px rgba(15, 118, 110, 0.5);
 }
 
 .button-secondary {
@@ -48,7 +48,7 @@
 }
 
 .button-outline:hover:not(:disabled) {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(15, 118, 110, 0.1);
 }
 
 .button-ghost {

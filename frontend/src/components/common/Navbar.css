@@ -4,7 +4,7 @@
     left: 0;
     right: 0;
     z-index: var(--z-sticky);
-    background: rgba(10, 10, 15, 0.8);
+    background: rgba(7, 17, 21, 0.8);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--color-border);
 }
@@ -23,6 +23,11 @@
     font-size: var(--font-size-xl);
     font-weight: 700;
     letter-spacing: -0.02em;
+    transition: transform var(--transition-fast);
+}
+
+.navbar-logo:hover {
+    transform: translateY(-1px);
 }
 
 .logo-icon {
@@ -47,13 +52,17 @@
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     font-weight: 500;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-full);
     transition: all var(--transition-fast);
 }
 
 .navbar-link:hover {
     color: var(--color-text-primary);
-    background: var(--color-bg-card);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.navbar-link:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .navbar-mobile-toggle {
@@ -64,14 +73,21 @@
     border: none;
     cursor: pointer;
     padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+}
+
+.navbar-mobile-toggle:hover {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .navbar-mobile {
     display: none;
     flex-direction: column;
     padding: var(--spacing-md);
-    background: var(--color-bg-secondary);
+    background: rgba(13, 27, 33, 0.95);
     border-top: 1px solid var(--color-border);
+    gap: var(--spacing-xs);
 }
 
 .navbar-mobile-link {

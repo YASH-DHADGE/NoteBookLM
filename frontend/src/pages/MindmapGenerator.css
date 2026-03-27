@@ -4,13 +4,13 @@
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background-color: #0d0d12;
-    color: #e2e8f0;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
 }
 
 .spinner.large {
     font-size: 3rem;
-    color: #6366f1;
+    color: #0f766e;
     margin-bottom: 24px;
     animation: spin 1.5s linear infinite;
 }
@@ -19,7 +19,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #0d0d12;
+    background-color: var(--color-bg-primary);
     overflow: hidden;
 }
 
@@ -28,7 +28,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 32px;
-    background-color: #1a1a24;
+    background-color: var(--color-bg-secondary);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -63,7 +63,7 @@
     gap: 12px;
     font-size: 18px;
     font-weight: 600;
-    color: #f8fafc;
+    color: var(--color-text-primary);
     margin: 0;
 }
 
@@ -77,9 +77,9 @@
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    background-color: rgba(99, 102, 241, 0.1);
-    color: #818cf8;
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    background-color: rgba(15, 118, 110, 0.1);
+    color: var(--color-accent-secondary);
+    border: 1px solid rgba(15, 118, 110, 0.2);
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
@@ -88,7 +88,7 @@
 }
 
 .action-btn:hover:not(:disabled) {
-    background-color: rgba(99, 102, 241, 0.2);
+    background-color: rgba(15, 118, 110, 0.2);
 }
 
 .action-btn:disabled {
@@ -99,9 +99,9 @@
 .mindmap-workspace {
     flex: 1;
     position: relative;
-    background-color: #0b0f19;
+    background-color: #0d1a21;
     background-image: 
-        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
+        radial-gradient(circle at 15% 50%, rgba(15, 118, 110, 0.08), transparent 25%),
         radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.05), transparent 25%);
     overflow: hidden;
 }
@@ -131,7 +131,7 @@
     flex-direction: column;
     gap: 8px;
     z-index: 10;
-    background: rgba(26, 26, 36, 0.8);
+    background: rgba(13, 27, 33, 0.8);
     backdrop-filter: blur(8px);
     padding: 8px;
     border-radius: 12px;
@@ -159,7 +159,7 @@
 
 /* D3 Tree Links Customization */
 .rd3t-link {
-    stroke: rgba(99, 102, 241, 0.35) !important;
+    stroke: rgba(15, 118, 110, 0.35) !important;
     stroke-width: 3px;
     transition: all 0.3s ease;
 }
@@ -171,8 +171,8 @@
     justify-content: center;
     height: 100%;
     width: 100%;
-    background: rgba(30, 30, 45, 0.85);
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    background: rgba(19, 39, 48, 0.88);
+    border: 1px solid rgba(15, 118, 110, 0.3);
     border-radius: 10px;
     padding: 8px 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -185,16 +185,16 @@
 
 .mindmap-node:hover {
     transform: translateY(-2px);
-    border-color: #818cf8;
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+    border-color: var(--color-accent-secondary);
+    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.25);
     background: rgba(45, 45, 60, 0.95);
 }
 
 .root-node {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.8) 0%, rgba(79, 70, 229, 0.95) 100%);
-    border: 2px solid #a5b4fc;
+    background: linear-gradient(135deg, rgba(15, 118, 110, 0.86) 0%, rgba(14, 165, 164, 0.95) 100%);
+    border: 2px solid rgba(94, 234, 212, 0.62);
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 8px 24px rgba(15, 118, 110, 0.4);
 }
 
 .root-node .node-label {
@@ -204,11 +204,11 @@
 }
 
 .root-node:hover {
-    background: linear-gradient(135deg, rgba(129, 140, 248, 0.9) 0%, rgba(99, 102, 241, 1) 100%);
+    background: linear-gradient(135deg, rgba(94, 234, 212, 0.86) 0%, rgba(15, 118, 110, 1) 100%);
 }
 
 .parent-node {
-    border-left: 4px solid #6366f1;
+    border-left: 4px solid #0f766e;
 }
 
 .leaf-node {
@@ -222,7 +222,7 @@
 }
 
 .node-label {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--font-family);
     font-size: 13px;
     font-weight: 500;
     color: #e2e8f0;
@@ -240,7 +240,7 @@
     position: absolute;
     top: -6px;
     right: -6px;
-    background: #4f46e5;
+    background: var(--color-accent-primary);
     color: white;
     font-weight: 700;
     padding: 2px 6px;
@@ -249,3 +249,4 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
+
