@@ -295,20 +295,19 @@ const Dashboard = () => {
 
     // Studio action cards
     const studioActions = [
-        { 
-            icon: <FiMic />, 
-            label: 'Audio Overview', 
-            iconClass: 'audio', 
-            action: () => selectedContent ? navigate(`/podcast?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first') 
+        {
+            icon: <FiMic />,
+            label: 'Audio Overview',
+            iconClass: 'audio',
+            action: () => selectedContent ? navigate(`/podcast?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first')
         },
         { icon: <FiVideo />, label: 'Video Overview', iconClass: 'video', action: () => toast('Coming soon!') },
-        { 
-            icon: <FiMapPin />, 
-            label: 'Mind Map', 
-            iconClass: 'mindmap', 
-            action: () => selectedContent ? navigate(`/mindmap?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first') 
+        {
+            icon: <FiMapPin />,
+            label: 'Mind Map',
+            iconClass: 'mindmap',
+            action: () => selectedContent ? navigate(`/mindmap?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first')
         },
-        { icon: <FiBarChart />, label: 'Reports', iconClass: 'reports', action: () => toast('Coming soon!') },
         {
             icon: <FiBookOpen />,
             label: 'Flashcards',
@@ -321,9 +320,7 @@ const Dashboard = () => {
             iconClass: 'quiz',
             action: () => selectedContent ? navigate(`/quiz?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first')
         },
-        { icon: <FiLayers />, label: 'Infographic', iconClass: 'infographic', action: () => toast('Coming soon!') },
         { icon: <FiGrid />, label: 'Slide deck', iconClass: 'slides', action: () => navigate('/ppt-generator') },
-        { icon: <FiDatabase />, label: 'Data table', iconClass: 'data', action: () => toast('Coming soon!') },
     ];
 
     return (
@@ -521,14 +518,6 @@ const Dashboard = () => {
                                 </div>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Recent notes section */}
-                    <div className="studio-section">
-                        <div className="studio-section-title">Notes</div>
-                        <button className="add-source-btn" style={{ margin: 0, width: '100%' }}>
-                            <FiPlus /> Add note
-                        </button>
                     </div>
                 </div>
             </aside>

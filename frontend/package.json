@@ -10,7 +10,6 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@huggingface/transformers": "^3.8.1",
         "axios": "^1.6.2",
         "framer-motion": "^12.29.0",
         "pptx-in-html-out": "^0.0.2",
