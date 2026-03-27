@@ -301,7 +301,12 @@ const Dashboard = () => {
             iconClass: 'audio',
             action: () => selectedContent ? navigate(`/podcast?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first')
         },
-        { icon: <FiVideo />, label: 'Video Overview', iconClass: 'video', action: () => toast('Coming soon!') },
+        {
+            icon: <FiVideo />,
+            label: 'Video Overview',
+            iconClass: 'video',
+            action: () => selectedContent ? navigate(`/video?contentId=${selectedContent._id}&notebookId=${notebookId}`) : toast.error('Select a document first')
+        },
         {
             icon: <FiMapPin />,
             label: 'Mind Map',

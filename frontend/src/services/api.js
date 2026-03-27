@@ -81,4 +81,10 @@ export const contentAPI = {
         api.patch(`/content/${contentId}/flashcards/${flashcardId}`, data),
 };
 
+// Video API
+export const videoAPI = {
+    generateScript: (data) => api.post('/video/generate-script', data),
+    generateVideo: (data) => api.post('/video/generate', data),
+};
+
 export default api;

@@ -5,6 +5,11 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
@@ -12,6 +17,7 @@ import userRoutes from './routes/userRoutes.js';
 import pptRoutes from './routes/pptRoutes.js';
 import contentRoutes from './routes/contentRoutes.js';
 import notebookRoutes from './routes/notebookRoutes.js';
+import videoRoutes from './routes/videoRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 
 // Connect to database
@@ -42,6 +48,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/ppt', pptRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/notebooks', notebookRoutes);
+app.use('/api/video', videoRoutes);
+
+// Static served uploads
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint with debug info
 app.get('/api/health', (req, res) => {

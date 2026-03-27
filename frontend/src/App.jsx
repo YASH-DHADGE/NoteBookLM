@@ -15,6 +15,7 @@ import FlashcardGenerator from './pages/FlashcardGenerator';
 import QuizGenerator from './pages/QuizGenerator';
 import PodcastPlayer from './pages/PodcastPlayer';
 import MindmapGenerator from './pages/MindmapGenerator';
+import VideoOverview from './pages/VideoOverview';
 
 // Styles
 import './styles/index.css';
@@ -115,6 +116,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <MindmapGenerator />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/video"
+                        element={
+                            <ProtectedRoute>
+                                <VideoOverview />
                             </ProtectedRoute>
                         }
                     />
