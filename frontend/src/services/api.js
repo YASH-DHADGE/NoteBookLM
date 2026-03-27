@@ -85,6 +85,8 @@ export const contentAPI = {
 export const videoAPI = {
     generateScript: (data) => api.post('/video/generate-script', data),
     generateVideo: (data) => api.post('/video/generate', data),
+    getVideoStatus: (jobId) => api.get(`/video/status/${jobId}`),
 };
+
 
 export default api;
